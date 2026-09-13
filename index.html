@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<title>Puzzle Blueprint</title>
+<meta name="puzzle-blueprint-version" content="1.6-relation-preview-cleanup" />
+<style>
+:root{
+  --bg:#080d14; --panel:#101722; --panel2:#0d131d; --line:#233146; --text:#e7edf6; --muted:#8fa0b5;
+  --accent:#4ba3ff; --grid1:rgba(89,121,158,.13); --grid2:rgba(89,121,158,.06); --danger:#ff6474;
+  --shadow:0 10px 28px rgba(0,0,0,.38);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.35 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit}
+button{color:var(--text)}
+.app{height:100dvh;display:grid;grid-template-columns:230px minmax(0,1fr) 300px;grid-template-rows:52px 1fr;grid-template-areas:"top top top" "palette canvas inspector";transition:grid-template-columns .18s ease}
+.app.palette-hidden{grid-template-columns:0 minmax(0,1fr) 300px}
+.app.inspector-hidden{grid-template-columns:230px minmax(0,1fr) 0}
+.app.palette-hidden.inspector-hidden{grid-template-columns:0 minmax(0,1fr) 0}
+.topbar{grid-area:top;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#0d141f;border-bottom:1px solid #1e2a3b;z-index:40}
+.brand{display:flex;align-items:center;gap:10px;margin-right:8px;min-width:190px}
+.logo{width:28px;height:28px;border:1px solid #3a5679;border-radius:7px;background:
+linear-gradient(135deg,rgba(71,160,255,.25),transparent 58%),#121d2c;position:relative}
+.logo:before,.logo:after{content:"";position:absolute;background:#71b7ff;border-radius:50%}
+.logo:before{width:6px;height:6px;left:6px;top:7px;box-shadow:10px 7px 0 #71b7ff}
+.logo:after{height:2px;width:13px;left:8px;top:12px;transform:rotate(31deg);transform-origin:left center;border-radius:2px}
+.brand b{font-size:15px;letter-spacing:.2px}.brand span{font-size:11px;color:var(--muted);display:block}
+.toolbar{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.toolbar::-webkit-scrollbar{display:none}
+.btn{height:34px;display:inline-flex;align-items:center;gap:7px;padding:0 11px;border:1px solid #29384e;border-radius:7px;background:#121b28;cursor:pointer;white-space:nowrap;transition:transform .11s ease,background .12s ease,border-color .12s ease,box-shadow .12s ease}
+.btn:active{transform:scale(.96)}
+.btn:hover{background:#172336;border-color:#385071}.btn.primary{background:#15345a;border-color:#2c6ba8}.btn.danger{color:#ff9aa5}
+.iconbtn{width:34px;padding:0;justify-content:center}
+.sep{height:22px;width:1px;background:#26354a;margin:0 2px}
+.spacer{flex:1}
+.zoomread{font-size:12px;color:#a8b6c9;min-width:42px;text-align:center}
+.graph-name{height:34px;width:190px;min-width:120px;border:1px solid #29384e;border-radius:7px;background:#0f1824;color:#edf4fc;padding:0 10px;outline:none;font-weight:650;transition:border-color .12s ease,box-shadow .12s ease,background .12s ease}
+.graph-name:focus{border-color:#4f88c5;box-shadow:0 0 0 2px rgba(61,133,207,.15);background:#121d2b}
+.graph-name::placeholder{color:#687d96;font-weight:500}
+.btn.panel-on{background:#173659;border-color:#3b78b6;box-shadow:inset 0 0 0 1px rgba(96,177,255,.08)}
+.palette{grid-area:palette;background:var(--panel2);border-right:1px solid #1f2a39;padding:12px;overflow:auto;z-index:20;min-width:0;transition:opacity .12s ease,transform .18s ease,padding .18s ease,border-color .18s ease}
+.inspector{grid-area:inspector;background:var(--panel2);border-left:1px solid #1f2a39;padding:12px;overflow:auto;z-index:20;min-width:0;transition:opacity .12s ease,transform .18s ease,padding .18s ease,border-color .18s ease}
+.app.palette-hidden .palette{opacity:0;pointer-events:none;padding-left:0;padding-right:0;border-right-color:transparent;transform:translateX(-16px)}
+.app.inspector-hidden .inspector{opacity:0;pointer-events:none;padding-left:0;padding-right:0;border-left-color:transparent;transform:translateX(16px)}
+.panel-title{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 12px}
+.panel-title h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#9eb0c7;margin:0}
+.palette-help{font-size:12px;color:#73869e;margin:2px 2px 12px}
+.node-type{width:100%;display:flex;align-items:center;gap:10px;padding:11px 9px;border:1px solid #26364b;border-radius:8px;background:#111a27;margin:7px 0;cursor:pointer;text-align:left;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.node-type:hover{background:#162236;border-color:#385372;transform:translateY(-1px)}
+.node-type{transition:transform .12s ease,background .12s ease,border-color .12s ease,box-shadow .12s ease}
+.node-type:active{transform:scale(.985)}
+.swatch{width:10px;height:28px;border-radius:3px;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+.node-type strong{display:block;font-size:13px}.node-type small{color:#7f91a8}
+.canvas-shell{grid-area:canvas;position:relative;overflow:hidden;touch-action:none;background-color:#090e16;background-image:
+linear-gradient(var(--grid1) 1px,transparent 1px),
+linear-gradient(90deg,var(--grid1) 1px,transparent 1px),
+linear-gradient(var(--grid2) 1px,transparent 1px),
+linear-gradient(90deg,var(--grid2) 1px,transparent 1px);
+background-size:var(--grid-major,100px) var(--grid-major,100px),var(--grid-major,100px) var(--grid-major,100px),var(--grid-minor,20px) var(--grid-minor,20px),var(--grid-minor,20px) var(--grid-minor,20px);
+background-position:var(--grid-x,0px) var(--grid-y,0px);cursor:crosshair}
+.canvas-shell:focus{outline:none}
+.canvas-shell.is-panning{cursor:grabbing}
+.viewport{position:absolute;inset:0;overflow:hidden}
+.world{position:absolute;left:0;top:0;width:1px;height:1px;transform-origin:0 0;overflow:visible}
+.wires{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+.wire{fill:none;stroke:#617a9c;stroke-width:3;filter:drop-shadow(0 1px 1px #000);transition:stroke .12s ease,stroke-width .12s ease,opacity .12s ease}
+.wire.selected{stroke-dasharray:10 8;animation:wireFlow 1.1s linear infinite}
+.live-wire{fill:none;stroke:#8bc2ff;stroke-width:3;stroke-dasharray:7 7;pointer-events:none;filter:drop-shadow(0 0 5px rgba(94,174,255,.45));animation:wireFlow .7s linear infinite}
+@keyframes wireFlow{to{stroke-dashoffset:-18}}
+.wire.selected{stroke:#8bc2ff;stroke-width:4}.wire.requires{stroke:#5aabff}.wire.unlocks{stroke:#4cd3a0}.wire.gives{stroke:#f4b454}.wire.reveals{stroke:#5dd4db}.wire.uses{stroke:#c18cff}.wire.blocks{stroke:#ff6c7a}
+.edge-hit{fill:none;stroke:transparent;stroke-width:15;pointer-events:stroke;cursor:pointer}
+.edge-label{font-size:12px;fill:#b9c6d8;paint-order:stroke;stroke:#0b111a;stroke-width:5px;stroke-linejoin:round;pointer-events:none}
+.graph-node{position:absolute;width:230px;border:1px solid #3a4b63;border-radius:8px;background:#121a25;box-shadow:var(--shadow);user-select:none;touch-action:none;overflow:visible;transition:transform .12s cubic-bezier(.2,.85,.25,1.15),box-shadow .12s ease,outline-color .12s ease,opacity .12s ease}
+.graph-node.dragging{transform:scale(1.015);box-shadow:0 18px 42px rgba(0,0,0,.5),0 0 0 1px rgba(113,181,255,.12)}
+.graph-node.spawn{animation:nodeSpawn .2s cubic-bezier(.2,.9,.2,1.25)}
+.graph-node.deleting{animation:nodeDelete .13s ease forwards}
+@keyframes nodeSpawn{0%{opacity:0;transform:scale(.86)}70%{opacity:1;transform:scale(1.035)}100%{transform:scale(1)}}
+@keyframes nodeDelete{to{opacity:0;transform:scale(.88)}}
+.graph-node.selected{outline:2px solid #71b5ff;outline-offset:2px;box-shadow:0 12px 30px rgba(0,0,0,.42),0 0 18px rgba(72,157,255,.16)}
+.node-head{height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:7px 7px 0 0;background:var(--node-color);cursor:grab;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.node-icon{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 18px}
+.node-icon svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.palette-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#f5f8fc;flex:0 0 28px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.palette-icon .node-icon{width:17px;height:17px;flex-basis:17px}
+.palette-icon .node-icon svg{width:17px;height:17px}
+.node-head:active{cursor:grabbing}
+.node-head .kind{font-size:10px;letter-spacing:.09em;text-transform:uppercase;opacity:.78;margin-left:auto}
+.node-body{min-height:58px;padding:9px 12px 11px;color:#c7d2e1}
+.node-title{font-weight:650;color:#f3f7fc;margin-bottom:5px;white-space:normal;overflow-wrap:anywhere}
+.node-notes{font-size:12px;color:#91a3ba;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pin{position:absolute;width:16px;height:16px;border:3px solid #0e141e;border-radius:50%;top:50%;transform:translateY(-50%);background:#9bb3d2;box-shadow:0 0 0 1px rgba(255,255,255,.25);cursor:crosshair;z-index:5;transition:width .1s ease,height .1s ease,box-shadow .1s ease,background .1s ease,transform .1s ease}
+.pin:hover{width:19px;height:19px}
+.pin.compatible{width:22px;height:22px;background:#eef7ff;box-shadow:0 0 0 3px rgba(91,171,255,.3),0 0 18px rgba(91,171,255,.75)}
+.pin.magnet{width:24px;height:24px;background:#fff;box-shadow:0 0 0 4px rgba(91,171,255,.32),0 0 22px rgba(91,171,255,.9)}
+.pin.in{left:-9px}.pin.out{right:-9px}.pin.armed{background:#fff;box-shadow:0 0 0 3px rgba(94,177,255,.35),0 0 18px rgba(94,177,255,.7)}
+.node-footer{border-top:1px solid #233044;display:flex;justify-content:space-between;padding:6px 10px;font-size:11px;color:#72869f}
+.node-status{display:flex;align-items:center;gap:5px}.status-dot{width:7px;height:7px;border-radius:50%;background:#71859d}
+.status-dot.solved{background:#51d19b}.status-dot.blocked{background:#ff6978}.status-dot.wip{background:#f0b34f}
+.field{margin:0 0 12px}.field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#7f93aa;margin:0 0 6px}
+.field input,.field textarea,.field select{width:100%;border:1px solid #2b3a50;background:#111a27;color:#e9eef6;border-radius:7px;padding:9px 10px;outline:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#4f88c5;box-shadow:0 0 0 2px rgba(61,133,207,.15)}
+.field textarea{min-height:110px;resize:vertical}
+.inspector-empty{padding:20px 8px;color:#71849d;text-align:center}
+.inspector-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:6px}
+.edge-panel{border-top:1px solid #213047;margin-top:14px;padding-top:14px}
+.edge-card{border:1px solid #28384e;background:#101925;border-radius:8px;padding:10px}
+.edge-route{font-size:12px;color:#8ea3bc;margin-bottom:9px}
+.context-tip{position:absolute;left:12px;bottom:12px;z-index:15;background:rgba(12,18,27,.88);border:1px solid #263850;border-radius:8px;padding:8px 10px;color:#8fa2b9;font-size:12px;backdrop-filter:blur(7px)}
+.mobile-fab{display:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.drawer-close{display:none}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);opacity:0;z-index:100;background:#132033;border:1px solid #355071;padding:9px 13px;border-radius:8px;box-shadow:var(--shadow);transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.marquee-box{position:absolute;display:none;pointer-events:none;z-index:14;border:1px solid rgba(112,184,255,.95);background:rgba(65,145,230,.13);box-shadow:0 0 0 1px rgba(105,177,255,.12) inset,0 0 18px rgba(58,137,230,.12);border-radius:3px}
+.marquee-box.show{display:block}
+.multi-summary{border:1px solid #2c3c52;background:#101925;border-radius:9px;padding:12px}
+.multi-summary strong{font-size:18px;display:block;margin-bottom:4px}
+.multi-summary p{font-size:12px;color:#8ea3bc;margin:0 0 12px}
+.align-guide{position:absolute;background:rgba(91,171,255,.55);pointer-events:none;z-index:3;box-shadow:0 0 8px rgba(91,171,255,.3)}
+.align-guide.v{width:1px;top:0;bottom:0}
+.align-guide.h{height:1px;left:0;right:0}
+.snap-pulse{position:absolute;width:18px;height:18px;border:2px solid rgba(109,190,255,.8);border-radius:50%;pointer-events:none;z-index:6;animation:snapPulse .28s ease-out forwards}
+@keyframes snapPulse{from{transform:translate(-50%,-50%) scale(.5);opacity:1}to{transform:translate(-50%,-50%) scale(2.1);opacity:0}}
+.file-input{display:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:90;padding:20px}
+.modal.open{display:flex}
+.modal-card{width:min(460px,100%);background:#101824;border:1px solid #30445f;border-radius:12px;box-shadow:0 25px 65px rgba(0,0,0,.55);padding:18px}
+.modal-card h3{margin:0 0 6px}.modal-card p{color:#8fa0b6;margin:0 0 14px}
+.relation-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.relation{padding:10px;border:1px solid #2b3d55;border-radius:8px;background:#121d2b;cursor:pointer;text-align:left}
+.relation strong{display:block}.relation small{color:#7f91a8}
+@media(max-width:900px){
+  .app{grid-template-columns:1fr;grid-template-areas:"top" "canvas"}
+  .app.palette-hidden,.app.inspector-hidden,.app.palette-hidden.inspector-hidden{grid-template-columns:1fr}
+  .brand{min-width:auto}.brand span{display:none}.brand b{display:none}
+  .palette,.inspector{position:fixed;top:52px;bottom:0;width:min(320px,88vw);display:block;z-index:70;transition:transform .2s ease,opacity .12s ease;padding:12px;opacity:1;pointer-events:auto}
+  .palette{left:0;transform:translateX(-105%);border-right:1px solid #30425b}
+  .inspector{right:0;transform:translateX(105%);border-left:1px solid #30425b}
+  .app.palette-hidden .palette,.app.inspector-hidden .inspector{opacity:1;pointer-events:auto;padding:12px;border-color:#30425b}
+  .palette.open,.inspector.open{transform:none}
+  .drawer-close{display:inline-flex}
+  .desktop-label{display:none}
+  .context-tip{font-size:11px;max-width:75%}
+  .mobile-fab{display:flex;position:absolute;right:14px;bottom:14px;z-index:30;width:54px;height:54px;border-radius:50%;border:1px solid #4f81b5;background:#174473;align-items:center;justify-content:center;font-size:30px;box-shadow:var(--shadow)}
+  .topbar{padding-inline:7px}.btn{padding:0 9px}
+  .graph-name{width:145px;min-width:110px;font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand"><div class="logo"></div><div><b>Puzzle Blueprint</b><span>Adventure dependency editor</span></div></div>
+    <div class="toolbar">
+      <button class="btn iconbtn panel-on" id="paletteBtn" title="Toggle node palette" aria-pressed="true">＋</button>
+      <input class="graph-name" id="graphName" type="text" maxlength="120" value="" placeholder="Graph name" aria-label="Graph name" title="Graph name and default export filename">
+      <button class="btn" id="newBtn" title="New graph">New</button>
+      <button class="btn" id="saveBtn" title="Save graph as JSON">Save</button>
+      <button class="btn" id="loadBtn" title="Import JSON">Load</button>
+      <div class="sep"></div>
+      <button class="btn iconbtn" id="undoBtn" title="Undo">↶</button>
+      <button class="btn iconbtn" id="redoBtn" title="Redo">↷</button>
+      <button class="btn" id="layoutBtn" title="Auto-layout dependency chart"><span class="desktop-label">Auto </span>Layout</button>
+      <div class="sep"></div>
+      <button class="btn iconbtn" id="zoomOutBtn" title="Zoom out">−</button>
+      <span class="zoomread" id="zoomRead">100%</span>
+      <button class="btn iconbtn" id="zoomInBtn" title="Zoom in">＋</button>
+      <button class="btn iconbtn" id="fitBtn" title="Fit graph">⌗</button>
+      <div class="sep"></div>
+      <button class="btn" id="svgBtn">SVG</button>
+      <button class="btn" id="pngBtn">PNG</button>
+      <div class="spacer"></div>
+      <button class="btn iconbtn panel-on" id="inspectorBtn" title="Toggle inspector" aria-pressed="true">☷</button>
+    </div>
+  </header>
+
+  <aside class="palette" id="palette">
+    <div class="panel-title"><h2>Node Palette</h2><button class="btn iconbtn drawer-close" id="closePalette">×</button></div>
+    <div class="palette-help">Tap a type to place it in the center of the canvas. Start a connection from either pin, then tap the opposite pin on another node.</div>
+    <div id="paletteList"></div>
+  </aside>
+
+  <main class="canvas-shell" id="canvas" tabindex="0">
+    <div class="viewport">
+      <div class="world" id="world">
+        <svg class="wires" id="wires">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#90a9c8"></path>
+            </marker>
+          </defs>
+          <g id="edgeLayer"></g>
+          <g id="liveEdgeLayer"></g>
+        </svg>
+        <div id="guideLayer"></div>
+        <div id="nodeLayer"></div>
+      </div>
+    </div>
+    <div class="marquee-box" id="marqueeBox"></div>
+    <div class="context-tip">Drag empty space to select • Space + drag or middle-drag to pan • Touch drag to pan • Start connections from either pin</div>
+    <button class="mobile-fab" id="fab">＋</button>
+  </main>
+
+  <aside class="inspector" id="inspector">
+    <div class="panel-title"><h2>Inspector</h2><button class="btn iconbtn drawer-close" id="closeInspector">×</button></div>
+    <div id="inspectorContent" class="inspector-empty">Select a node or connection.</div>
+  </aside>
+</div>
+
+<input type="file" id="fileInput" class="file-input" accept=".json,application/json" />
+<div class="toast" id="toast"></div>
+
+
+<div class="modal" id="saveModal">
+  <div class="modal-card">
+    <h3>Save graph</h3>
+    <p>Name the JSON file. The graph name above stays embedded inside the file.</p>
+    <div class="field"><label>File name</label><input id="saveFileName" type="text" maxlength="140" autocomplete="off"></div>
+    <div class="inspector-actions"><button class="btn" id="cancelSaveBtn">Cancel</button><button class="btn primary" id="confirmSaveBtn">Save JSON</button></div>
+  </div>
+</div>
+
+<div class="modal" id="relationModal">
+  <div class="modal-card">
+    <h3>Connection type</h3>
+    <p>Choose how the source node relates to the target node.</p>
+    <div class="relation-grid" id="relationGrid"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+const TYPES = {
+  goal:{name:"Goal", color:"#2869a8", desc:"Major objective / chapter goal"},
+  puzzle:{name:"Puzzle", color:"#5d4aa8", desc:"A problem the player must solve"},
+  gate:{name:"Gate", color:"#a84350", desc:"Access restriction or blocking state"},
+  item:{name:"Item", color:"#a87526", desc:"Inventory object or usable prop"},
+  clue:{name:"Clue", color:"#287b83", desc:"Information that enables inference"},
+  character:{name:"Character", color:"#7a428e", desc:"NPC or conversational dependency"},
+  location:{name:"Location", color:"#377d55", desc:"Place the player must reach/use"},
+  state:{name:"State", color:"#536579", desc:"World flag or changed condition"},
+  and:{name:"AND", color:"#42637f", desc:"Every child dependency must be satisfied"},
+  or:{name:"OR", color:"#28758f", desc:"Any one child branch can satisfy this dependency"}
+};
+const RELATIONS = {
+  requires:{name:"Requires", help:"Source cannot be completed until target is satisfied."},
+  unlocks:{name:"Unlocks", help:"Source opens or enables target."},
+  gives:{name:"Gives", help:"Source provides target."},
+  reveals:{name:"Reveals", help:"Source makes target known or understandable."},
+  uses:{name:"Uses", help:"Source consumes or applies target."},
+  blocks:{name:"Blocks", help:"Source prevents access to target."}
+};
+
+const els = {
+ app:document.getElementById("app"), graphName:document.getElementById("graphName"),
+ canvas:document.getElementById("canvas"), world:document.getElementById("world"),
+ nodeLayer:document.getElementById("nodeLayer"), edgeLayer:document.getElementById("edgeLayer"), liveEdgeLayer:document.getElementById("liveEdgeLayer"),
+ inspector:document.getElementById("inspector"), palette:document.getElementById("palette"),
+ inspectorContent:document.getElementById("inspectorContent"), zoomRead:document.getElementById("zoomRead"),
+ fileInput:document.getElementById("fileInput"), toast:document.getElementById("toast"),
+ relationModal:document.getElementById("relationModal"), relationGrid:document.getElementById("relationGrid"),
+ saveModal:document.getElementById("saveModal"), saveFileName:document.getElementById("saveFileName"),
+ guideLayer:document.getElementById("guideLayer"), marqueeBox:document.getElementById("marqueeBox")
+};
+
+let state = {
+  version:1,
+  title:"Forbidden Archive",
+  nodes:[
+    {id:"n_goal",type:"goal",title:"Enter the Forbidden Archive",notes:"The player must get past the librarian without triggering a hard fail.",x:960,y:180,status:"wip"},
+    {id:"n_libby",type:"character",title:"Get Libby away from the entrance",notes:"Create a reason for Libby to leave or stop watching the restricted door.",x:720,y:410,status:"wip"},
+    {id:"n_access",type:"gate",title:"Restricted door is unguarded",notes:"World state that allows the player to cross into the forbidden section.",x:1200,y:410,status:"blocked"},
+    {id:"n_or",type:"or",title:"Any distraction plan works",notes:"Alternative-solution gate. Completing any one child branch satisfies this dependency.",x:920,y:640,status:"wip"},
+    {id:"n_jealous",type:"clue",title:"Exploit Libby's jealousy",notes:"Social branch: learn enough from conversation to create a believable reason for Libby to disengage.",x:500,y:860,status:"wip"},
+    {id:"n_errand",type:"puzzle",title:"Create a library errand",notes:"Errand branch: manipulate a request, missing book, or desk duty that pulls Libby away.",x:850,y:860,status:"wip"},
+    {id:"n_cover",type:"puzzle",title:"Create a distraction at the desk",notes:"Distraction branch: change what Libby must pay attention to long enough to cross.",x:1200,y:860,status:"wip"},
+    {id:"n_book",type:"item",title:"Mis-shelved rare book",notes:"Potential prop for the errand branch.",x:790,y:1080,status:"wip"},
+    {id:"n_card",type:"clue",title:"Catalog card points to the wrong shelf",notes:"Identity + relationship clue: the card explains where the book should be.",x:1040,y:1080,status:"wip"}
+  ],
+  edges:[
+    {id:"e1",from:"n_goal",to:"n_access",relation:"requires"},
+    {id:"e2",from:"n_access",to:"n_libby",relation:"requires"},
+    {id:"e3",from:"n_libby",to:"n_or",relation:"requires"},
+    {id:"e4",from:"n_or",to:"n_jealous",relation:"requires"},
+    {id:"e5",from:"n_or",to:"n_errand",relation:"requires"},
+    {id:"e6",from:"n_or",to:"n_cover",relation:"requires"},
+    {id:"e7",from:"n_errand",to:"n_book",relation:"requires"},
+    {id:"e8",from:"n_book",to:"n_card",relation:"requires"}
+  ]
+};
+let view={x:0,y:0,scale:1};
+let uiPrefs={paletteVisible:true,inspectorVisible:true};
+let selected={kind:null,id:null};
+let selectedNodeIds=new Set();
+let connecting=null; // { nodeId, pin:"in"|"out" }
+let pendingConnection=null;
+let livePointer=null;
+let magnetTarget=null;
+let spawningNodeId=null;
+let deletingNodeId=null;
+let dragging=null;
+let panning=null;
+let marquee=null;
+let spaceDown=false;
+let pointers=new Map();
+let pinchStart=null;
+let history=[], future=[];
+let saveTimer=null;
+
+function clone(v){return JSON.parse(JSON.stringify(v))}
+function snapshot(){
+  history.push(clone(state));
+  if(history.length>60) history.shift();
+  future=[];
+}
+function undo(){
+  if(!history.length)return;
+  future.push(clone(state)); state=history.pop(); selected={kind:null,id:null}; selectedNodeIds.clear(); connecting=null; render(); persist();
+}
+function redo(){
+  if(!future.length)return;
+  history.push(clone(state)); state=future.pop(); selected={kind:null,id:null}; selectedNodeIds.clear(); connecting=null; render(); persist();
+}
+function uid(prefix){return prefix+"_"+Math.random().toString(36).slice(2,9)}
+function toast(msg){
+  els.toast.textContent=msg; els.toast.classList.add("show");
+  clearTimeout(els.toast._t); els.toast._t=setTimeout(()=>els.toast.classList.remove("show"),1500);
+}
+function persist(){
+  clearTimeout(saveTimer); saveTimer=setTimeout(()=>{
+    localStorage.setItem("puzzleBlueprint.graph", JSON.stringify(state));
+    localStorage.setItem("puzzleBlueprint.view", JSON.stringify(view));
+    localStorage.setItem("puzzleBlueprint.ui", JSON.stringify(uiPrefs));
+  },150);
+}
+function restore(){
+  try{
+    const s=localStorage.getItem("puzzleBlueprint.graph");
+    const v=localStorage.getItem("puzzleBlueprint.view");
+    const u=localStorage.getItem("puzzleBlueprint.ui");
+    if(s) state=JSON.parse(s); if(v) view=JSON.parse(v); if(u) uiPrefs={...uiPrefs,...JSON.parse(u)};
+  }catch(e){}
+}
+function bindTap(el,handler){
+  let lastTouch=0;
+
+  el.addEventListener("pointerup",e=>{
+    if(e.pointerType==="touch" || e.pointerType==="pen"){
+      e.preventDefault();
+      e.stopPropagation();
+      lastTouch=Date.now();
+      handler(e);
+    }
+  });
+
+  el.addEventListener("click",e=>{
+    if(Date.now()-lastTouch<500){
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    handler(e);
+  });
+
+  if(!window.PointerEvent){
+    el.addEventListener("touchend",e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      handler(e);
+    },{passive:false});
+  }
+}
+
+function syncGraphName(){
+  if(document.activeElement!==els.graphName) els.graphName.value=state.title||"";
+}
+function syncPanels(){
+  if(innerWidth<=900){
+    els.app.classList.remove("palette-hidden","inspector-hidden");
+    return;
+  }
+  els.app.classList.toggle("palette-hidden",!uiPrefs.paletteVisible);
+  els.app.classList.toggle("inspector-hidden",!uiPrefs.inspectorVisible);
+  const pb=document.getElementById("paletteBtn"), ib=document.getElementById("inspectorBtn");
+  pb?.classList.toggle("panel-on",uiPrefs.paletteVisible);
+  ib?.classList.toggle("panel-on",uiPrefs.inspectorVisible);
+  pb?.setAttribute("aria-pressed",String(uiPrefs.paletteVisible));
+  ib?.setAttribute("aria-pressed",String(uiPrefs.inspectorVisible));
+}
+function togglePalette(){
+  if(innerWidth<=900){
+    const opening=!els.palette.classList.contains("open");
+    els.palette.classList.toggle("open",opening);
+    if(opening)els.inspector.classList.remove("open");
+    return;
+  }
+  uiPrefs.paletteVisible=!uiPrefs.paletteVisible;
+  syncPanels(); persist();
+}
+function toggleInspector(){
+  if(innerWidth<=900){
+    const opening=!els.inspector.classList.contains("open");
+    els.inspector.classList.toggle("open",opening);
+    if(opening)els.palette.classList.remove("open");
+    return;
+  }
+  uiPrefs.inspectorVisible=!uiPrefs.inspectorVisible;
+  syncPanels(); persist();
+}
+function normalizedFileBase(value){
+  return String(value||"").trim().replace(/\.json$/i,"").replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g," ").trim() || "puzzle-graph";
+}
+function openSaveDialog(){
+  const base=normalizedFileBase(state.title||"puzzle-graph");
+  els.saveFileName.value=base;
+  els.saveModal.classList.add("open");
+  requestAnimationFrame(()=>{els.saveFileName.focus();els.saveFileName.select()});
+}
+function closeSaveDialog(){els.saveModal.classList.remove("open")}
+
+function palette(){
+  const list=document.getElementById("paletteList"); list.innerHTML="";
+  Object.entries(TYPES).forEach(([key,t])=>{
+    const b=document.createElement("button"); b.className="node-type";
+    b.innerHTML=`<span class="palette-icon" style="background:${t.color}">${iconFor(key)}</span><span><strong>${t.name}</strong><small>${t.desc}</small></span>`;
+    bindTap(b,()=>addNode(key));
+    list.appendChild(b);
+  });
+}
+function relationChoices(){
+  els.relationGrid.innerHTML="";
+  Object.entries(RELATIONS).forEach(([key,r])=>{
+    const b=document.createElement("button"); b.className="relation";
+    b.innerHTML=`<strong>${r.name}</strong><small>${r.help}</small>`;
+    b.onclick=()=>finishConnection(key);
+    els.relationGrid.appendChild(b);
+  });
+}
+function screenToWorld(clientX,clientY){
+  const r=els.canvas.getBoundingClientRect();
+  return {x:(clientX-r.left-view.x)/view.scale,y:(clientY-r.top-view.y)/view.scale};
+}
+
+function haptic(ms=8){
+  try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){}
+}
+function pulseAt(x,y){
+  const p=document.createElement("div");
+  p.className="snap-pulse"; p.style.left=x+"px"; p.style.top=y+"px";
+  els.guideLayer.appendChild(p); setTimeout(()=>p.remove(),320);
+}
+function clearGuides(){ els.guideLayer.querySelectorAll(".align-guide").forEach(x=>x.remove()); }
+function showGuide(kind,pos){
+  const g=document.createElement("div"); g.className="align-guide "+kind;
+  if(kind==="v")g.style.left=pos+"px"; else g.style.top=pos+"px";
+  els.guideLayer.appendChild(g);
+}
+function updateAlignmentGuides(node){
+  clearGuides(); const threshold=7/view.scale; let snapX=null,snapY=null;
+  const cx=node.x+115,cy=node.y+63;
+  for(const other of state.nodes){
+    if(other.id===node.id)continue;
+    const ocx=other.x+115,ocy=other.y+63;
+    if(Math.abs(cx-ocx)<threshold){snapX=ocx-115;showGuide("v",ocx)}
+    if(Math.abs(cy-ocy)<threshold){snapY=ocy-63;showGuide("h",ocy)}
+    if(Math.abs(node.x-other.x)<threshold){snapX=other.x;showGuide("v",other.x)}
+    if(Math.abs(node.y-other.y)<threshold){snapY=other.y;showGuide("h",other.y)}
+  }
+  if(snapX!==null)node.x=snapX; if(snapY!==null)node.y=snapY;
+}
+function updateCompatiblePins(){
+  document.querySelectorAll(".pin").forEach(p=>{
+    p.classList.remove("compatible","magnet"); if(!connecting)return;
+    const node=p.closest(".graph-node"); if(!node||node.dataset.id===connecting.nodeId)return;
+    if(p.dataset.pin!==connecting.pin)p.classList.add("compatible");
+  });
+}
+function renderLiveWire(){
+  els.liveEdgeLayer.innerHTML=""; if(!connecting||!livePointer)return;
+  const n=state.nodes.find(x=>x.id===connecting.nodeId); if(!n)return;
+  let ax,ay,bx,by;
+  if(connecting.pin==="out"){ax=n.x+230;ay=n.y+63;bx=livePointer.x;by=livePointer.y}
+  else{ax=livePointer.x;ay=livePointer.y;bx=n.x;by=n.y+63}
+  if(magnetTarget){
+    const t=state.nodes.find(x=>x.id===magnetTarget.nodeId);
+    if(t){if(connecting.pin==="out"){bx=t.x;by=t.y+63}else{ax=t.x+230;ay=t.y+63}}
+  }
+  const mx=(ax+bx)/2,d=`M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`;
+  const p=document.createElementNS("http://www.w3.org/2000/svg","path"); p.setAttribute("d",d);p.setAttribute("class","live-wire");els.liveEdgeLayer.appendChild(p);
+}
+function detectMagnetTarget(clientX,clientY){
+  if(!connecting)return null; const pins=[...document.querySelectorAll(".pin.compatible")]; let best=null,bestD=Infinity;
+  for(const p of pins){
+    const r=p.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,d=Math.hypot(clientX-x,clientY-y);
+    if(d<bestD&&d<42){bestD=d;const node=p.closest(".graph-node");best={nodeId:node.dataset.id,pin:p.dataset.pin,el:p}}
+  }
+  return best;
+}
+
+function addNode(type){
+  snapshot();
+
+  const r=els.canvas.getBoundingClientRect();
+  const c=screenToWorld(r.left+r.width/2,r.top+r.height/2);
+  const n={
+    id:uid("n"),
+    type,
+    title:`New ${TYPES[type].name}`,
+    notes:"",
+    x:c.x-115,
+    y:c.y-55,
+    status:"wip"
+  };
+
+  state.nodes.push(n);
+  selectedNodeIds=new Set([n.id]);
+  selected={kind:"node",id:n.id};
+  spawningNodeId=n.id;
+  closeDrawers();
+  render();
+  haptic(7);
+  pulseAt(n.x+115,n.y+63);
+  setTimeout(()=>{spawningNodeId=null;renderNodes();},220);
+  persist();
+  toast(`${TYPES[type].name} node created`);
+}
+function deleteSelected(){
+  if(selected.kind==="node"&&selectedNodeIds.size){
+    snapshot();
+    const ids=new Set(selectedNodeIds);
+    if(ids.size===1){
+      const id=[...ids][0];deletingNodeId=id;haptic(11);renderNodes();
+      setTimeout(()=>{state.nodes=state.nodes.filter(n=>n.id!==id);state.edges=state.edges.filter(e=>e.from!==id&&e.to!==id);deletingNodeId=null;selectedNodeIds.clear();selected={kind:null,id:null};render();persist()},135);return;
+    }
+    state.nodes=state.nodes.filter(n=>!ids.has(n.id));
+    state.edges=state.edges.filter(e=>!ids.has(e.from)&&!ids.has(e.to));
+    selectedNodeIds.clear();selected={kind:null,id:null};haptic(12);render();persist();toast(`${ids.size} nodes deleted`);return;
+  }
+  if(selected.kind==="edge"&&selected.id){snapshot();state.edges=state.edges.filter(e=>e.id!==selected.id);haptic(7);selected={kind:null,id:null};render();persist()}
+}
+function duplicateNode(){
+  if(selected.kind!=="node"||selectedNodeIds.size!==1)return;
+  const id=[...selectedNodeIds][0],n=state.nodes.find(x=>x.id===id); if(!n)return;
+  snapshot();
+  const cp={...clone(n),id:uid("n"),x:n.x+32,y:n.y+32,title:n.title+" copy"};
+  state.nodes.push(cp); selectedNodeIds=new Set([cp.id]);selected={kind:"node",id:cp.id}; render(); persist();
+}
+function select(kind,id,options={}){
+  if(kind==="node"){
+    if(options.toggle){
+      if(selectedNodeIds.has(id))selectedNodeIds.delete(id);else selectedNodeIds.add(id);
+    }else if(options.add){ selectedNodeIds.add(id); }
+    else selectedNodeIds=new Set([id]);
+    const primary=selectedNodeIds.has(id)?id:[...selectedNodeIds][0]||null;
+    selected=primary?{kind:"node",id:primary}:{kind:null,id:null};
+  }else{
+    selectedNodeIds.clear();selected={kind,id};
+  }
+  renderSelection(); renderInspector();
+}
+function applyNodeSelection(ids,primary=null){
+  selectedNodeIds=new Set(ids);
+  const id=primary&&selectedNodeIds.has(primary)?primary:[...selectedNodeIds][0]||null;
+  selected=id?{kind:"node",id}:{kind:null,id:null};
+  renderSelection();
+}
+function render(){
+  renderView(); renderNodes(); renderEdges(); renderInspector(); updateZoom(); syncGraphName(); syncPanels();
+}
+function renderView(){
+  els.world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+  els.canvas.style.setProperty("--grid-major",`${100*view.scale}px`);
+  els.canvas.style.setProperty("--grid-minor",`${20*view.scale}px`);
+  els.canvas.style.setProperty("--grid-x",`${view.x}px`);
+  els.canvas.style.setProperty("--grid-y",`${view.y}px`);
+}
+function renderNodes(){
+  els.nodeLayer.innerHTML="";
+  state.nodes.forEach(n=>{
+    const t=TYPES[n.type]||TYPES.puzzle;
+    const el=document.createElement("div");
+    el.className="graph-node"+(selectedNodeIds.has(n.id)?" selected":"")+(spawningNodeId===n.id?" spawn":"")+(deletingNodeId===n.id?" deleting":"");
+    el.dataset.id=n.id; el.style.left=n.x+"px"; el.style.top=n.y+"px"; el.style.setProperty("--node-color",t.color);
+    const shortNotes=n.notes?escapeHtml(n.notes):"No notes";
+    el.innerHTML=`
+      <div class="pin in ${connecting&&connecting.nodeId===n.id&&connecting.pin==="in"?"armed":""}" data-pin="in" title="Input"></div>
+      <div class="pin out ${connecting&&connecting.nodeId===n.id&&connecting.pin==="out"?"armed":""}" data-pin="out" title="Output"></div>
+      <div class="node-head">${iconFor(n.type)}<span>${escapeHtml(t.name)}</span><span class="kind">${escapeHtml(n.type)}</span></div>
+      <div class="node-body"><div class="node-title">${escapeHtml(n.title)}</div><div class="node-notes">${shortNotes}</div></div>
+      <div class="node-footer"><span>ID ${n.id.slice(-5)}</span><span class="node-status"><i class="status-dot ${n.status||"wip"}"></i>${labelStatus(n.status)}</span></div>`;
+    el.addEventListener("pointerdown",nodePointerDown);
+    el.addEventListener("click",e=>{e.stopPropagation()});
+    el.querySelector(".pin.out").addEventListener("pointerdown",e=>{e.stopPropagation()});
+    el.querySelector(".pin.in").addEventListener("pointerdown",e=>{e.stopPropagation()});
+
+    bindTap(el.querySelector(".pin.out"),e=>{
+      e.stopPropagation();
+      handlePinTap(n.id,"out");
+    });
+
+    bindTap(el.querySelector(".pin.in"),e=>{
+      e.stopPropagation();
+      handlePinTap(n.id,"in");
+    });
+    els.nodeLayer.appendChild(el);
+  });
+  updateCompatiblePins();
+}
+function renderSelection(){
+  document.querySelectorAll(".graph-node").forEach(el=>el.classList.toggle("selected",selectedNodeIds.has(el.dataset.id)));
+  renderEdges();
+}
+function handlePinTap(nodeId,pin){
+  if(!connecting){
+    connecting={nodeId,pin};livePointer=null;magnetTarget=null;renderNodes();haptic(5);
+    toast(pin==="out" ? "Choose an input pin" : "Choose an output pin");return;
+  }
+  if(connecting.nodeId===nodeId&&connecting.pin===pin){
+    connecting=null;livePointer=null;magnetTarget=null;renderNodes();renderLiveWire();toast("Connection cancelled");return;
+  }
+  if(connecting.pin===pin){
+    connecting={nodeId,pin};livePointer=null;magnetTarget=null;renderNodes();haptic(5);
+    toast(pin==="out" ? "Choose an input pin" : "Choose an output pin");return;
+  }
+  if(connecting.pin==="out"&&pin==="in"){
+    if(connecting.nodeId===nodeId)return;pendingConnection={from:connecting.nodeId,to:nodeId};
+  }else if(connecting.pin==="in"&&pin==="out"){
+    if(connecting.nodeId===nodeId)return;pendingConnection={from:nodeId,to:connecting.nodeId};
+  }else return;
+
+  // Both endpoints are chosen. The temporary wire has finished its job.
+  // Clear it before the relation picker opens so it cannot keep following the pointer.
+  livePointer=null;
+  magnetTarget=null;
+  renderLiveWire();
+  document.querySelectorAll(".pin.magnet").forEach(p=>p.classList.remove("magnet"));
+  haptic(8);
+  els.relationModal.classList.add("open");
+}
+
+function renderEdges(){
+  els.edgeLayer.innerHTML="";
+  state.edges.forEach(e=>{
+    const a=state.nodes.find(n=>n.id===e.from), b=state.nodes.find(n=>n.id===e.to); if(!a||!b)return;
+    const ax=a.x+230, ay=a.y+63, bx=b.x, by=b.y+63;
+    const dy=by-ay;
+    let d;
+    if(Math.abs(bx-ax)>90){
+      const mx=(ax+bx)/2;
+      d=`M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`;
+    } else {
+      const bend=Math.max(85,Math.abs(dy)*.35);
+      d=`M ${ax} ${ay} C ${ax+bend} ${ay}, ${bx-bend} ${by}, ${bx} ${by}`;
+    }
+    const mid=bezierMid(ax,ay,bx,by);
+    const g=document.createElementNS("http://www.w3.org/2000/svg","g");
+    const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
+    hit.setAttribute("d",d); hit.setAttribute("class","edge-hit"); hit.style.pointerEvents="stroke";
+    hit.addEventListener("pointerdown",ev=>ev.stopPropagation());
+    hit.addEventListener("click",ev=>{ev.stopPropagation(); select("edge",e.id)});
+    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("d",d);p.setAttribute("class",`wire ${e.relation||"requires"} ${selected.kind==="edge"&&selected.id===e.id?"selected":""}`);if(selected.kind==="edge"&&selected.id!==e.id)p.style.opacity=".62";
+    p.setAttribute("marker-end","url(#arrow)");
+    const label=document.createElementNS("http://www.w3.org/2000/svg","text");
+    label.setAttribute("class","edge-label"); label.setAttribute("x",mid.x); label.setAttribute("y",mid.y-7); label.setAttribute("text-anchor","middle");
+    label.textContent=(RELATIONS[e.relation]||RELATIONS.requires).name;
+    g.appendChild(hit);g.appendChild(p);g.appendChild(label);els.edgeLayer.appendChild(g);
+  });
+}
+function bezierMid(ax,ay,bx,by){return{x:(ax+bx)/2,y:(ay+by)/2}}
+function finishConnection(relation){
+  if(!pendingConnection)return;
+  const dup=state.edges.some(e=>e.from===pendingConnection.from&&e.to===pendingConnection.to&&e.relation===relation);
+  if(!dup){snapshot(); state.edges.push({id:uid("e"),from:pendingConnection.from,to:pendingConnection.to,relation});}
+  if(pendingConnection){const target=state.nodes.find(n=>n.id===pendingConnection.to);if(target)pulseAt(target.x,target.y+63)}
+  pendingConnection=null;connecting=null;livePointer=null;magnetTarget=null;els.relationModal.classList.remove("open");haptic(9);render();persist();
+}
+function renderInspector(){
+  if(selected.kind==="node"&&selectedNodeIds.size>1){
+    els.inspectorContent.className="";
+    els.inspectorContent.innerHTML=`<div class="multi-summary"><strong>${selectedNodeIds.size} nodes selected</strong><p>Drag any selected node header to move the whole group. Shift-click adds or removes individual nodes.</p><button class="btn danger" id="delMulti" style="width:100%;justify-content:center">Delete selected nodes</button></div>`;
+    document.getElementById("delMulti").onclick=deleteSelected;
+    return;
+  }
+  if(selected.kind==="node"){
+    const n=state.nodes.find(x=>x.id===selected.id); if(!n){emptyInspector();return}
+    els.inspectorContent.className="";
+    els.inspectorContent.innerHTML=`
+      <div class="field"><label>Type</label><select id="iType">${Object.entries(TYPES).map(([k,t])=>`<option value="${k}" ${k===n.type?"selected":""}>${t.name}</option>`).join("")}</select></div>
+      <div class="field"><label>Title</label><input id="iTitle" value="${attr(n.title)}"></div>
+      <div class="field"><label>Notes / logic</label><textarea id="iNotes">${escapeHtml(n.notes||"")}</textarea></div>
+      <div class="field"><label>Status</label><select id="iStatus">
+        <option value="wip" ${n.status==="wip"?"selected":""}>Working</option>
+        <option value="solved" ${n.status==="solved"?"selected":""}>Solved / validated</option>
+        <option value="blocked" ${n.status==="blocked"?"selected":""}>Blocked / unresolved</option>
+      </select></div>
+      <div class="inspector-actions"><button class="btn" id="dupNode">Duplicate</button><button class="btn danger" id="delNode">Delete</button></div>`;
+    bindInspectorNode(n);
+  }else if(selected.kind==="edge"){
+    const e=state.edges.find(x=>x.id===selected.id); if(!e){emptyInspector();return}
+    const a=state.nodes.find(n=>n.id===e.from), b=state.nodes.find(n=>n.id===e.to);
+    els.inspectorContent.className="";
+    els.inspectorContent.innerHTML=`
+      <div class="edge-card">
+        <div class="edge-route">${escapeHtml(a?.title||"?")} → ${escapeHtml(b?.title||"?")}</div>
+        <div class="field"><label>Relation</label><select id="iRelation">${Object.entries(RELATIONS).map(([k,r])=>`<option value="${k}" ${k===e.relation?"selected":""}>${r.name}</option>`).join("")}</select></div>
+        <button class="btn danger" id="delEdge" style="width:100%;justify-content:center">Delete connection</button>
+      </div>`;
+    document.getElementById("iRelation").onchange=ev=>{snapshot();e.relation=ev.target.value;renderEdges();persist()};
+    document.getElementById("delEdge").onclick=deleteSelected;
+  }else emptyInspector();
+}
+function emptyInspector(){els.inspectorContent.className="inspector-empty";els.inspectorContent.innerHTML="Select a node or connection."}
+function bindInspectorNode(n){
+  const title=document.getElementById("iTitle"),notes=document.getElementById("iNotes"),type=document.getElementById("iType"),status=document.getElementById("iStatus");
+  let editSnapshotTaken=false;
+  const ensure=()=>{if(!editSnapshotTaken){snapshot();editSnapshotTaken=true}};
+  title.oninput=()=>{ensure();n.title=title.value;renderNodes();renderEdges();persist()};
+  notes.oninput=()=>{ensure();n.notes=notes.value;renderNodes();persist()};
+  type.onchange=()=>{snapshot();n.type=type.value;renderNodes();persist()};
+  status.onchange=()=>{snapshot();n.status=status.value;if(n.status==="solved"){haptic(10);pulseAt(n.x+210,n.y+111)}renderNodes();persist()};
+  document.getElementById("dupNode").onclick=duplicateNode; document.getElementById("delNode").onclick=deleteSelected;
+}
+function nodePointerDown(e){
+  if(e.button!==undefined&&e.button!==0)return;
+  if(e.target.classList.contains("pin"))return;
+  const id=e.currentTarget.dataset.id,n=state.nodes.find(x=>x.id===id);if(!n)return;
+  e.stopPropagation();
+
+  if(e.shiftKey){
+    select("node",id,{toggle:true});
+    if(!selectedNodeIds.has(id))return;
+  }else if(!selectedNodeIds.has(id)){
+    select("node",id);
+  }else{
+    selected={kind:"node",id};renderInspector();
+  }
+
+  const head=e.target.closest(".node-head"); if(!head)return;
+  snapshot();
+  const positions=[...selectedNodeIds].map(nodeId=>{
+    const node=state.nodes.find(x=>x.id===nodeId);return node?{id:nodeId,x:node.x,y:node.y}:null;
+  }).filter(Boolean);
+  dragging={id,startX:e.clientX,startY:e.clientY,positions,moved:false};
+  for(const nodeId of selectedNodeIds){
+    const el=document.querySelector(`.graph-node[data-id="${CSS.escape(nodeId)}"]`);if(el)el.classList.add("dragging");
+  }
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+}
+function updateMarqueeVisual(){
+  if(!marquee)return;
+  const x=Math.min(marquee.startX,marquee.x),y=Math.min(marquee.startY,marquee.y);
+  const w=Math.abs(marquee.x-marquee.startX),h=Math.abs(marquee.y-marquee.startY);
+  els.marqueeBox.style.left=x+"px";els.marqueeBox.style.top=y+"px";els.marqueeBox.style.width=w+"px";els.marqueeBox.style.height=h+"px";
+  els.marqueeBox.classList.add("show");
+}
+function marqueeWorldRect(){
+  const x1=Math.min(marquee.startX,marquee.x),x2=Math.max(marquee.startX,marquee.x);
+  const y1=Math.min(marquee.startY,marquee.y),y2=Math.max(marquee.startY,marquee.y);
+  return {x1:(x1-view.x)/view.scale,y1:(y1-view.y)/view.scale,x2:(x2-view.x)/view.scale,y2:(y2-view.y)/view.scale};
+}
+function updateMarqueeSelection(){
+  if(!marquee)return;
+  const r=marqueeWorldRect(),hits=[];
+  for(const n of state.nodes){
+    if(n.x<r.x2&&n.x+230>r.x1&&n.y<r.y2&&n.y+126>r.y1)hits.push(n.id);
+  }
+  const ids=marquee.additive?new Set([...marquee.base,...hits]):new Set(hits);
+  applyNodeSelection(ids);
+}
+function onPointerMove(e){
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(connecting&&!pendingConnection&&!els.relationModal.classList.contains("open")&&pointers.size<2){
+    livePointer=screenToWorld(e.clientX,e.clientY);
+    const next=detectMagnetTarget(e.clientX,e.clientY);
+    document.querySelectorAll(".pin.magnet").forEach(p=>p.classList.remove("magnet"));
+    magnetTarget=next;if(next?.el)next.el.classList.add("magnet");renderLiveWire();
+  }
+
+  if(pointers.size===2){
+    const pts=[...pointers.values()]; const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+    const mid={x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+    if(!pinchStart) pinchStart={dist,scale:view.scale,mid,viewX:view.x,viewY:view.y};
+    else{
+      const newScale=clamp(pinchStart.scale*(dist/pinchStart.dist),.25,2),r=els.canvas.getBoundingClientRect();
+      const wx=(pinchStart.mid.x-r.left-pinchStart.viewX)/pinchStart.scale,wy=(pinchStart.mid.y-r.top-pinchStart.viewY)/pinchStart.scale;
+      view.scale=newScale;view.x=mid.x-r.left-wx*newScale;view.y=mid.y-r.top-wy*newScale;renderView();updateZoom();persist();
+    }
+    dragging=null;panning=null;marquee=null;els.marqueeBox.classList.remove("show");return;
+  }
+  if(dragging){
+    const dx=(e.clientX-dragging.startX)/view.scale,dy=(e.clientY-dragging.startY)/view.scale;
+    if(!dragging.moved&&Math.hypot(dx,dy)<2)return;
+    dragging.moved=true;
+    for(const base of dragging.positions){
+      const n=state.nodes.find(x=>x.id===base.id);if(!n)continue;n.x=base.x+dx;n.y=base.y+dy;
+    }
+    if(dragging.positions.length===1){const n=state.nodes.find(x=>x.id===dragging.id);if(n)updateAlignmentGuides(n)}else clearGuides();
+    for(const base of dragging.positions){
+      const n=state.nodes.find(x=>x.id===base.id),el=document.querySelector(`.graph-node[data-id="${CSS.escape(base.id)}"]`);if(n&&el){el.style.left=n.x+"px";el.style.top=n.y+"px"}
+    }
+    renderEdges();persist();
+  }else if(panning){
+    view.x=panning.viewX+(e.clientX-panning.startX);view.y=panning.viewY+(e.clientY-panning.startY);renderView();persist();
+  }else if(marquee){
+    const r=els.canvas.getBoundingClientRect();marquee.x=e.clientX-r.left;marquee.y=e.clientY-r.top;
+    marquee.moved=marquee.moved||Math.hypot(marquee.x-marquee.startX,marquee.y-marquee.startY)>3;
+    updateMarqueeVisual();updateMarqueeSelection();
+  }
+}
+function onPointerUp(e){
+  pointers.delete(e.pointerId);if(pointers.size<2)pinchStart=null;
+  if(dragging){
+    for(const nodeId of selectedNodeIds){const el=document.querySelector(`.graph-node[data-id="${CSS.escape(nodeId)}"]`);if(el)el.classList.remove("dragging")}
+    clearGuides();
+    if(dragging.moved){const n=state.nodes.find(x=>x.id===dragging.id);if(n){pulseAt(n.x+115,n.y+63);haptic(6)}}
+  }
+  if(marquee){
+    if(!marquee.moved&&!marquee.additive){selectedNodeIds.clear();selected={kind:null,id:null};renderSelection()}
+    els.marqueeBox.classList.remove("show");renderInspector();
+  }
+  dragging=null;panning=null;marquee=null;els.canvas.classList.remove("is-panning");
+}
+function canvasPointerDown(e){
+  if(e.target.closest?.("button,.context-tip,.graph-node"))return;
+  if(e.button!==undefined&&e.button!==0&&e.button!==1)return;
+  els.canvas.focus({preventScroll:true});
+  connecting=null;livePointer=null;magnetTarget=null;renderLiveWire();
+  const r=els.canvas.getBoundingClientRect();
+  const shouldPan=e.pointerType==="touch"||e.button===1||spaceDown;
+  if(shouldPan){
+    panning={startX:e.clientX,startY:e.clientY,viewX:view.x,viewY:view.y};els.canvas.classList.add("is-panning");
+  }else{
+    marquee={startX:e.clientX-r.left,startY:e.clientY-r.top,x:e.clientX-r.left,y:e.clientY-r.top,additive:e.shiftKey,base:new Set(selectedNodeIds),moved:false};
+    if(!e.shiftKey){selectedNodeIds.clear();selected={kind:null,id:null};renderSelection();renderInspector()}
+    updateMarqueeVisual();
+  }
+  els.canvas.setPointerCapture?.(e.pointerId);
+}
+function zoomAt(factor,cx,cy){
+  const r=els.canvas.getBoundingClientRect(); const old=view.scale; const ns=clamp(old*factor,.25,2);
+  const wx=(cx-r.left-view.x)/old, wy=(cy-r.top-view.y)/old;
+  view.x=cx-r.left-wx*ns;view.y=cy-r.top-wy*ns;view.scale=ns;renderView();updateZoom();persist();
+}
+function wheel(e){e.preventDefault();zoomAt(e.deltaY<0?1.1:.9,e.clientX,e.clientY)}
+function updateZoom(){els.zoomRead.textContent=Math.round(view.scale*100)+"%"}
+function fitGraph(){
+  if(!state.nodes.length){view={x:40,y:40,scale:1};render();return}
+  const minX=Math.min(...state.nodes.map(n=>n.x)),minY=Math.min(...state.nodes.map(n=>n.y));
+  const maxX=Math.max(...state.nodes.map(n=>n.x+230)),maxY=Math.max(...state.nodes.map(n=>n.y+130));
+  const r=els.canvas.getBoundingClientRect(),pad=60;
+  const sc=clamp(Math.min((r.width-pad*2)/(maxX-minX),(r.height-pad*2)/(maxY-minY)),.25,1.3);
+  view.scale=sc;view.x=pad-minX*sc;view.y=pad-minY*sc;render();persist();
+}
+function autoLayout(){
+  if(!state.nodes.length)return; snapshot();
+  const outs=new Map(state.nodes.map(n=>[n.id,[]])), indeg=new Map(state.nodes.map(n=>[n.id,0]));
+  state.edges.forEach(e=>{if(outs.has(e.from)&&indeg.has(e.to)){outs.get(e.from).push(e.to);indeg.set(e.to,indeg.get(e.to)+1)}});
+  let roots=state.nodes.filter(n=>indeg.get(n.id)===0).map(n=>n.id); if(!roots.length) roots=[state.nodes[0].id];
+  const level=new Map(); const q=roots.map(id=>[id,0]); const seen=new Set();
+  while(q.length){
+    const [id,l]=q.shift(); if(seen.has(id)&&level.get(id)>=l)continue; seen.add(id);level.set(id,Math.max(level.get(id)||0,l));
+    (outs.get(id)||[]).forEach(t=>q.push([t,l+1]));
+  }
+  state.nodes.forEach(n=>{if(!level.has(n.id))level.set(n.id,0)});
+  const groups={};state.nodes.forEach(n=>(groups[level.get(n.id)]??=[]).push(n));
+  Object.entries(groups).forEach(([ls,nodes])=>{
+    nodes.sort((a,b)=>a.x-b.x); const l=Number(ls),gap=50,total=nodes.length*230+(nodes.length-1)*gap,start=700-total/2+500;
+    nodes.forEach((n,i)=>{n.x=start+i*(230+gap);n.y=120+l*230});
+  });
+  render();fitGraph();persist();toast("Auto-layout applied");
+}
+function newGraph(){
+  if(!confirm("Create a new graph? Your current graph is already autosaved locally."))return;
+  snapshot();state={version:1,title:"Untitled Puzzle Graph",nodes:[],edges:[]};selected={kind:null,id:null};selectedNodeIds.clear();render();persist();requestAnimationFrame(()=>{els.graphName.focus();els.graphName.select()});
+}
+function saveJson(fileBase){
+  const base=normalizedFileBase(fileBase||state.title||"puzzle-graph");
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  download(blob,base+".json");
+  closeSaveDialog();
+  toast(`Saved ${base}.json`);
+}
+function loadJson(file){
+  const rd=new FileReader();rd.onload=()=>{try{
+    const data=JSON.parse(rd.result); if(!data.nodes||!data.edges)throw new Error("Invalid graph");
+    if(!data.title)data.title=file.name.replace(/\.json$/i,"")||"Untitled Puzzle Graph";
+    snapshot();state=data;selected={kind:null,id:null};selectedNodeIds.clear();render();fitGraph();persist();toast(`Loaded ${state.title}`);
+  }catch(err){alert("Could not load this graph file.");}};rd.readAsText(file);
+}
+function graphBounds(){
+  if(!state.nodes.length)return{x:0,y:0,w:800,h:500};
+  const minX=Math.min(...state.nodes.map(n=>n.x))-70,minY=Math.min(...state.nodes.map(n=>n.y))-70;
+  const maxX=Math.max(...state.nodes.map(n=>n.x+230))+70,maxY=Math.max(...state.nodes.map(n=>n.y+130))+70;
+  return{x:minX,y:minY,w:maxX-minX,h:maxY-minY};
+}
+function exportNodeIcon(type,x,y){
+  const icons={
+    goal:`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M22 12h-3M12 22v-3M2 12h3"/>`,
+    puzzle:`<path d="M8.5 3H4a1 1 0 0 0-1 1v4.5a2.5 2.5 0 1 1 0 5V20a1 1 0 0 0 1 1h6.5a2.5 2.5 0 1 1 5 0H20a1 1 0 0 0 1-1v-6.5a2.5 2.5 0 1 1 0-5V4a1 1 0 0 0-1-1h-6.5a2.5 2.5 0 1 1-5 0z"/>`,
+    gate:`<path d="M5 21V7a7 7 0 0 1 14 0v14"/><path d="M9 21V8a3 3 0 0 1 6 0v13"/><path d="M3 21h18"/>`,
+    item:`<path d="M4 8h16l-1 12H5L4 8z"/><path d="M8 8a4 4 0 0 1 8 0"/><path d="M9 12h6"/>`,
+    clue:`<path d="M9 18h6"/><path d="M10 22h4"/><path d="M8.2 14.8A7 7 0 1 1 15.8 14.8C14.7 15.7 14 16.6 14 18h-4c0-1.4-.7-2.3-1.8-3.2z"/>`,
+    character:`<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>`,
+    location:`<path d="M12 22s7-6.2 7-13a7 7 0 1 0-14 0c0 6.8 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/>`,
+    state:`<rect x="3" y="5" width="18" height="14" rx="7"/><circle cx="9" cy="12" r="3"/>`,
+    and:`<path d="M7 17l5-10 5 10"/><path d="M9 14h6"/>`,
+    or:`<path d="M6 7c3 2 5 5 6 10"/><path d="M18 7c-3 2-5 5-6 10"/><path d="M8.5 12h7"/>`
+  };
+  const body=icons[type]||icons.puzzle;
+  return `<svg x="${x}" y="${y}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
+
+function exportSvgString(){
+  const b=graphBounds(), parts=[];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${b.w}" height="${b.h}" viewBox="${b.x} ${b.y} ${b.w} ${b.h}">`);
+  parts.push(`<defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#162439" stroke-width="1"/></pattern><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L0 6L9 3z" fill="#8ca8c9"/></marker></defs>`);
+  parts.push(`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="#090f18"/><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="url(#g)"/>`);
+  state.edges.forEach(e=>{const a=state.nodes.find(n=>n.id===e.from),c=state.nodes.find(n=>n.id===e.to);if(!a||!c)return;const ax=a.x+230,ay=a.y+63,bx=c.x,by=c.y+63,m=(ax+bx)/2;
+    parts.push(`<path d="M${ax} ${ay} C${m} ${ay} ${m} ${by} ${bx} ${by}" fill="none" stroke="#78a7d8" stroke-width="3" marker-end="url(#a)"/>`);
+    parts.push(`<text x="${m}" y="${(ay+by)/2-8}" text-anchor="middle" fill="#c5d1df" font-family="Arial,sans-serif" font-size="12">${xml((RELATIONS[e.relation]||RELATIONS.requires).name)}</text>`);
+  });
+  state.nodes.forEach(n=>{const t=TYPES[n.type]||TYPES.puzzle;
+    parts.push(`<g><rect x="${n.x}" y="${n.y}" width="230" height="126" rx="8" fill="#121a25" stroke="#40536d"/><path d="M${n.x+8} ${n.y}H${n.x+222}Q${n.x+230} ${n.y} ${n.x+230} ${n.y+8}V${n.y+36}H${n.x}V${n.y+8}Q${n.x} ${n.y} ${n.x+8} ${n.y}" fill="${t.color}"/>`);
+    parts.push(exportNodeIcon(n.type,n.x+10,n.y+9));
+    parts.push(`<text x="${n.x+36}" y="${n.y+23}" fill="#fff" font-family="Arial,sans-serif" font-size="13" font-weight="700">${xml(t.name)}</text>`);
+    const lines=wrap(n.title,30,2);lines.forEach((ln,i)=>parts.push(`<text x="${n.x+12}" y="${n.y+61+i*17}" fill="#eef4fb" font-family="Arial,sans-serif" font-size="14" font-weight="700">${xml(ln)}</text>`));
+    const note=wrap(n.notes||"",36,2);note.forEach((ln,i)=>parts.push(`<text x="${n.x+12}" y="${n.y+96+i*14}" fill="#8fa3ba" font-family="Arial,sans-serif" font-size="11">${xml(ln)}</text>`));
+    parts.push(`</g>`);
+  });
+  parts.push(`</svg>`);return parts.join("");
+}
+function exportSvg(){download(new Blob([exportSvgString()],{type:"image/svg+xml"}),slug(state.title||"puzzle-graph")+".svg")}
+function exportPng(){
+  const svg=exportSvgString(),blob=new Blob([svg],{type:"image/svg+xml"}),url=URL.createObjectURL(blob),img=new Image();
+  img.onload=()=>{const b=graphBounds(),scale=2,cv=document.createElement("canvas");cv.width=b.w*scale;cv.height=b.h*scale;const ctx=cv.getContext("2d");ctx.scale(scale,scale);ctx.drawImage(img,0,0,b.w,b.h);URL.revokeObjectURL(url);cv.toBlob(p=>download(p,slug(state.title||"puzzle-graph")+".png"),"image/png")};img.src=url;
+}
+function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)}
+function wrap(s,len,max){const words=(s||"").split(/\s+/).filter(Boolean),out=[];let line="";for(const w of words){if((line+" "+w).trim().length>len){if(line)out.push(line);line=w}else line=(line+" "+w).trim();if(out.length===max)break}if(line&&out.length<max)out.push(line);return out}
+function iconFor(t){
+  const icons={
+    goal:`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v3M22 12h-3M12 22v-3M2 12h3"/></svg>`,
+    puzzle:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3H4a1 1 0 0 0-1 1v4.5a2.5 2.5 0 1 1 0 5V20a1 1 0 0 0 1 1h6.5a2.5 2.5 0 1 1 5 0H20a1 1 0 0 0 1-1v-6.5a2.5 2.5 0 1 1 0-5V4a1 1 0 0 0-1-1h-6.5a2.5 2.5 0 1 1-5 0z"/></svg>`,
+    gate:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V7a7 7 0 0 1 14 0v14"/><path d="M9 21V8a3 3 0 0 1 6 0v13"/><path d="M3 21h18"/></svg>`,
+    item:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1 12H5L4 8z"/><path d="M8 8a4 4 0 0 1 8 0"/><path d="M9 12h6"/></svg>`,
+    clue:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M8.2 14.8A7 7 0 1 1 15.8 14.8C14.7 15.7 14 16.6 14 18h-4c0-1.4-.7-2.3-1.8-3.2z"/></svg>`,
+    character:`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`,
+    location:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-6.2 7-13a7 7 0 1 0-14 0c0 6.8 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>`,
+    state:`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="7"/><circle cx="9" cy="12" r="3"/></svg>`,
+    and:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17l5-10 5 10"/><path d="M9 14h6"/></svg>`,
+    or:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7c3 2 5 5 6 10"/><path d="M18 7c-3 2-5 5-6 10"/><path d="M8.5 12h7"/></svg>`
+  };
+  return `<span class="node-icon">${icons[t]||icons.puzzle}</span>`;
+}
+function labelStatus(s){return s==="solved"?"Solved":s==="blocked"?"Blocked":"Working"}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function attr(s){return escapeHtml(s).replace(/`/g,"&#096;")}
+function xml(s){return escapeHtml(s)}
+function slug(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"puzzle-graph"}
+function closeDrawers(){els.palette.classList.remove("open");els.inspector.classList.remove("open")}
+function showInspectorOnMobile(){if(innerWidth<=900){els.inspector.classList.add("open");els.palette.classList.remove("open")}}
+
+els.canvas.addEventListener("pointerdown",canvasPointerDown);
+window.addEventListener("pointermove",onPointerMove,{passive:false});window.addEventListener("pointerup",onPointerUp);window.addEventListener("pointercancel",onPointerUp);
+els.canvas.addEventListener("wheel",wheel,{passive:false});
+els.canvas.addEventListener("click",e=>{if(e.target===els.canvas){selected={kind:null,id:null};renderSelection();renderInspector()}});
+document.getElementById("undoBtn").onclick=undo;document.getElementById("redoBtn").onclick=redo;
+document.getElementById("zoomInBtn").onclick=()=>{const r=els.canvas.getBoundingClientRect();zoomAt(1.15,r.left+r.width/2,r.top+r.height/2)};
+document.getElementById("zoomOutBtn").onclick=()=>{const r=els.canvas.getBoundingClientRect();zoomAt(.87,r.left+r.width/2,r.top+r.height/2)};
+document.getElementById("fitBtn").onclick=fitGraph;document.getElementById("layoutBtn").onclick=autoLayout;
+document.getElementById("newBtn").onclick=newGraph;document.getElementById("saveBtn").onclick=openSaveDialog;document.getElementById("loadBtn").onclick=()=>els.fileInput.click();
+els.fileInput.onchange=e=>{if(e.target.files[0])loadJson(e.target.files[0]);e.target.value=""};
+document.getElementById("svgBtn").onclick=exportSvg;document.getElementById("pngBtn").onclick=exportPng;
+bindTap(document.getElementById("paletteBtn"),togglePalette);
+bindTap(document.getElementById("fab"),()=>els.palette.classList.add("open"));
+bindTap(document.getElementById("inspectorBtn"),toggleInspector);
+bindTap(document.getElementById("closePalette"),()=>{if(innerWidth<=900)els.palette.classList.remove("open");else{uiPrefs.paletteVisible=false;syncPanels();persist()}});
+bindTap(document.getElementById("closeInspector"),()=>{if(innerWidth<=900)els.inspector.classList.remove("open");else{uiPrefs.inspectorVisible=false;syncPanels();persist()}});
+els.graphName.addEventListener("focus",()=>{els.graphName.dataset.before=state.title||""});
+els.graphName.addEventListener("input",()=>{state.title=els.graphName.value;persist()});
+els.graphName.addEventListener("change",()=>{state.title=els.graphName.value.trim()||"Untitled Puzzle Graph";els.graphName.value=state.title;persist()});
+document.getElementById("cancelSaveBtn").onclick=closeSaveDialog;
+document.getElementById("confirmSaveBtn").onclick=()=>saveJson(els.saveFileName.value);
+els.saveFileName.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();saveJson(els.saveFileName.value)}else if(e.key==="Escape"){e.preventDefault();closeSaveDialog()}});
+els.saveModal.addEventListener("click",e=>{if(e.target===els.saveModal)closeSaveDialog()});
+els.relationModal.addEventListener("click",e=>{
+  if(e.target===els.relationModal){
+    els.relationModal.classList.remove("open");
+    pendingConnection=null;
+    connecting=null;
+    livePointer=null;
+    magnetTarget=null;
+    renderNodes();
+    renderLiveWire();
+  }
+});
+window.addEventListener("keydown",e=>{
+  const tag=document.activeElement?.tagName;if(["INPUT","TEXTAREA","SELECT"].includes(tag))return;
+  if(e.code==="Space"){spaceDown=true;if(document.activeElement===els.canvas){e.preventDefault();els.canvas.classList.add("is-panning")}return}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="a"&&document.activeElement===els.canvas){e.preventDefault();applyNodeSelection(state.nodes.map(n=>n.id));renderInspector();toast(`${selectedNodeIds.size} nodes selected`)}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();e.shiftKey?redo():undo()}
+  else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}
+  else if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();deleteSelected()}
+  else if(e.key==="Escape"){connecting=null;pendingConnection=null;livePointer=null;magnetTarget=null;selectedNodeIds.clear();selected={kind:null,id:null};els.relationModal.classList.remove("open");closeDrawers();els.marqueeBox.classList.remove("show");renderSelection();renderInspector();renderNodes();renderLiveWire()}
+});
+window.addEventListener("keyup",e=>{if(e.code==="Space"){spaceDown=false;if(!panning)els.canvas.classList.remove("is-panning")}});
+window.addEventListener("resize",()=>{if(innerWidth>900)closeDrawers();syncPanels()});
+
+palette();relationChoices();restore();render();
+setTimeout(()=>{if(!localStorage.getItem("puzzleBlueprint.view"))fitGraph()},50);
+})();
+</script>
+</body>
+</html>
