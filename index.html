@@ -266,27 +266,27 @@ const els = {
 
 let state = {
   version:1,
-  title:"Forbidden Archive",
+  title:"The Entrance to Atlantis",
   nodes:[
-    {id:"n_goal",type:"goal",title:"Enter the Forbidden Archive",notes:"The player must get past the librarian without triggering a hard fail.",x:960,y:180,status:"wip"},
-    {id:"n_libby",type:"character",title:"Get Libby away from the entrance",notes:"Create a reason for Libby to leave or stop watching the restricted door.",x:720,y:410,status:"wip"},
-    {id:"n_access",type:"gate",title:"Restricted door is unguarded",notes:"World state that allows the player to cross into the forbidden section.",x:1200,y:410,status:"blocked"},
-    {id:"n_or",type:"or",title:"Any distraction plan works",notes:"Alternative-solution gate. Completing any one child branch satisfies this dependency.",x:920,y:640,status:"wip"},
-    {id:"n_jealous",type:"clue",title:"Exploit Libby's jealousy",notes:"Social branch: learn enough from conversation to create a believable reason for Libby to disengage.",x:500,y:860,status:"wip"},
-    {id:"n_errand",type:"puzzle",title:"Create a library errand",notes:"Errand branch: manipulate a request, missing book, or desk duty that pulls Libby away.",x:850,y:860,status:"wip"},
-    {id:"n_cover",type:"puzzle",title:"Create a distraction at the desk",notes:"Distraction branch: change what Libby must pay attention to long enough to cross.",x:1200,y:860,status:"wip"},
-    {id:"n_book",type:"item",title:"Mis-shelved rare book",notes:"Potential prop for the errand branch.",x:790,y:1080,status:"wip"},
-    {id:"n_card",type:"clue",title:"Catalog card points to the wrong shelf",notes:"Identity + relationship clue: the card explains where the book should be.",x:1040,y:1080,status:"wip"}
+    {id:"n_goal",type:"goal",title:"Enter Atlantis",notes:"Indiana Jones must open the ancient entrance and continue into Atlantis.",x:960,y:180,status:"wip"},
+    {id:"n_access",type:"gate",title:"Atlantean entrance is open",notes:"The sealed entrance opens after the stone mechanism is configured correctly.",x:960,y:410,status:"blocked"},
+    {id:"n_disks",type:"puzzle",title:"Configure the stone-disk mechanism",notes:"Place the three stone disks on the spindle and rotate them to the entrance alignment.",x:960,y:640,status:"wip"},
+    {id:"n_and",type:"and",title:"All entrance conditions are met",notes:"The mechanism needs all three disks plus the information required to align them.",x:960,y:860,status:"wip"},
+    {id:"n_sunstone",type:"item",title:"Sunstone",notes:"The first engraved stone disk used by the Atlantean mechanism.",x:300,y:1080,status:"wip"},
+    {id:"n_moonstone",type:"item",title:"Moonstone",notes:"The second engraved disk, aligned in relation to the Sunstone.",x:580,y:1080,status:"wip"},
+    {id:"n_worldstone",type:"item",title:"Worldstone",notes:"The third engraved disk required to approach Atlantis itself.",x:860,y:1080,status:"wip"},
+    {id:"n_dialogue",type:"clue",title:"Plato's Lost Dialogue",notes:"The text explains how the symbols on the Sunstone, Moonstone, and Worldstone relate.",x:1140,y:1080,status:"wip"},
+    {id:"n_contrary",type:"clue",title:"The final entrance uses a contrary alignment",notes:"The final instruction changes how the earlier disk alignment must be applied at Atlantis.",x:1420,y:1080,status:"wip"}
   ],
   edges:[
     {id:"e1",from:"n_goal",to:"n_access",relation:"requires"},
-    {id:"e2",from:"n_access",to:"n_libby",relation:"requires"},
-    {id:"e3",from:"n_libby",to:"n_or",relation:"requires"},
-    {id:"e4",from:"n_or",to:"n_jealous",relation:"requires"},
-    {id:"e5",from:"n_or",to:"n_errand",relation:"requires"},
-    {id:"e6",from:"n_or",to:"n_cover",relation:"requires"},
-    {id:"e7",from:"n_errand",to:"n_book",relation:"requires"},
-    {id:"e8",from:"n_book",to:"n_card",relation:"requires"}
+    {id:"e2",from:"n_access",to:"n_disks",relation:"requires"},
+    {id:"e3",from:"n_disks",to:"n_and",relation:"requires"},
+    {id:"e4",from:"n_and",to:"n_sunstone",relation:"requires"},
+    {id:"e5",from:"n_and",to:"n_moonstone",relation:"requires"},
+    {id:"e6",from:"n_and",to:"n_worldstone",relation:"requires"},
+    {id:"e7",from:"n_and",to:"n_dialogue",relation:"requires"},
+    {id:"e8",from:"n_and",to:"n_contrary",relation:"requires"}
   ]
 };
 let view={x:0,y:0,scale:1};
